@@ -4,6 +4,7 @@ from crc import calcula_crc
 import os
 import struct
 from states import STATES_AIRFYER
+import time
 
 
 uart0_filestream = -1
@@ -67,53 +68,70 @@ class ModBusFunction():
     def send_data(self, command): 
         global uart0_filestream
         if uart0_filestream != -1:
-            print(command)
+            # print(command)
             count = os.write(uart0_filestream, command)
-            print(count)
+            # print(count)
             if count < 0:
                 print("UART TX error")
 
-    
-    def get_message(self): 
-        pass
+    def read_commands(self):
+        self.ask_value('0xC3')
+        time.sleep(1)
+        command = self.receive_data()
+        return command
+
+    def get_message(self, message): 
+        command = -1
+        subcode = str(hex(message[2]))
+        if subcode == '0xc1': 
+            command = struct.unpack("f", message[3:7])[0]
+            STATES_AIRFYER["intern_temperature"] = command
+        elif subcode == '0xc2': 
+            command = struct.unpack("f", message[3:7])[0]
+            STATES_AIRFYER["intern_temperature"] = command
+        elif subcode == '0xc3': 
+            command = struct.unpack("i", message[3:7])[0]
+        return command
 
     def receive_data(self):
         # Aqui necessário receber mensagem, verificar o crc recebido e ver se nao houve erro ou ruido
         if (uart0_filestream != -1):
             # Read up to 255 characters from the port if they are there
             rx_buffer = os.read(uart0_filestream, 255)
-            last_message = rx_buffer[9:]
-            separated_bytes = struct.unpack("9B", last_message)
-            code = str(hex(separated_bytes[1]))
-            subcode = str(hex(separated_bytes[2]))
-            print(code, subcode)
+            print("rx_Bufefr", rx_buffer)
             rx_len = len(rx_buffer)
+            print(rx_len)
             if rx_len < 0:
                 print("Erro na leitura.\n")
+                return -1
 
             elif rx_len == 0:
                 print("Nenhum dado disponível.\n")
+                return -1
 
             else:
-                received_crc = last_message[-2:]
-                print(received_crc)
-                data_bytes = last_message[:-2]
+                last_message = rx_buffer[-9:]
+                print(last_message)
+                if(len(last_message)==9):
+                    # print(last_message)66
+                    code = str(hex(last_message[1]))
+                    print("code ", code)
+                    received_crc = last_message[-2:]
+                    data_bytes = last_message[:-2]
 
-                # # Calcular o CRC dos dados
-                calculated_crc = struct.pack('H',calcula_crc(data_bytes))
-                print(calculated_crc)
+                    # # Calcular o CRC dos dados
+                    calculated_crc = struct.pack('H',calcula_crc(data_bytes))
+                    # Verificar se o CRC calculado corresponde ao CRC recebido
+                    if calculated_crc == received_crc:
+                        if(code == '0x23'): 
+                            command = self.get_message(last_message)
 
-                # Verificar se o CRC calculado corresponde ao CRC recebido
-                if calculated_crc == received_crc:
-                    if(code == '0x23'): 
-                        self.get_message()
-                    #CRC válido, proceder com o processamento dos dados
-
-                    print("%i Bytes lidos: %s\n" % (rx_len, rx_buffer))
-                    # Processar os dados aqui
-                    
-                else:
-                    print("Erro no CRC. Dados corrompidos.\n")
+                        # print("%i Bytes lidos: %s\n" % (rx_len, rx_buffer))
+                        # Processar os dados aqui
+                            return command
+                    else:
+                        print("Erro no CRC. Dados corrompidos.\n")
+                        return -1
                 
 
 

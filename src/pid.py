@@ -2,9 +2,9 @@
 #include <stdio.h>
 
 referencia = 0.0
-Kp = 0.0  # Ganho Proporcional
-Ki = 0.0  # Ganho Integral
-Kd = 0.0  # Ganho Derivativo
+Kp = 30.0 # Ganho Proporcional
+Ki = 0.2  # Ganho Integral
+Kd = 400.0  # Ganho Derivativo
 T = 1.0      # Período de Amostragem (ms)
 erro_total, erro_anterior = 0.0
 sinal_de_controle_MAX = 100.0
