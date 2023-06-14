@@ -3,7 +3,7 @@ import os
 from crc import calcula_crc
 import os
 import struct
-from states import STATES_AIRFYER
+from states import states_airfyer
 import time
 
 
@@ -68,27 +68,19 @@ class ModBusFunction():
     def send_data(self, command): 
         global uart0_filestream
         if uart0_filestream != -1:
-            # print(command)
             count = os.write(uart0_filestream, command)
-            # print(count)
             if count < 0:
                 print("UART TX error")
-
-    def read_commands(self):
-        self.ask_value('0xC3')
-        time.sleep(1)
-        command = self.receive_data()
-        return command
 
     def get_message(self, message): 
         command = -1
         subcode = str(hex(message[2]))
         if subcode == '0xc1': 
             command = struct.unpack("f", message[3:7])[0]
-            STATES_AIRFYER["intern_temperature"] = command
+            states_airfyer["intern_temperature"] = command
         elif subcode == '0xc2': 
             command = struct.unpack("f", message[3:7])[0]
-            STATES_AIRFYER["intern_temperature"] = command
+            states_airfyer["intern_temperature"] = command
         elif subcode == '0xc3': 
             command = struct.unpack("i", message[3:7])[0]
         return command
@@ -111,9 +103,7 @@ class ModBusFunction():
 
             else:
                 last_message = rx_buffer[-9:]
-                print(last_message)
                 if(len(last_message)==9):
-                    # print(last_message)66
                     code = str(hex(last_message[1]))
                     print("code ", code)
                     received_crc = last_message[-2:]
@@ -125,9 +115,6 @@ class ModBusFunction():
                     if calculated_crc == received_crc:
                         if(code == '0x23'): 
                             command = self.get_message(last_message)
-
-                        # print("%i Bytes lidos: %s\n" % (rx_len, rx_buffer))
-                        # Processar os dados aqui
                             return command
                     else:
                         print("Erro no CRC. Dados corrompidos.\n")
