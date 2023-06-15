@@ -1,18 +1,18 @@
-import gpio
 from modbus import ModBusFunction
 from states import states_airfyer
-import time, signal
-from pid import pid_controle
 from commands import Commands
-import i2c
-import sys
+import encoder, signal, pwm, i2c, sys
+from log_csv_lcd import Log
+from control import control_thread
+
 
 time_start = -1
 modbus = ModBusFunction()
 commands = Commands()
-def alarm_handler(signum, frame): 
+log = Log()
+
+def alarm_dashboard(signum, frame): 
     global time_start
-    time.sleep(1)
     response_user = commands.read_commands()
     code = str(hex(response_user))
     print(code)
@@ -23,11 +23,9 @@ def alarm_handler(signum, frame):
     # Comando para desligar a AirFryer
     elif(code == '0x2'):
         commands.send_system_state(0)
-        gpio.stop()
-        i2c.clean_lcd()
+        pwm.stop()
     # Inicia aquecimento
     elif(code == '0x3'):
-        print("entrei aqui")
         commands.send_function_state(1)
         print(states_airfyer["function_state"])
     # Cancela processo    
@@ -43,58 +41,32 @@ def alarm_handler(signum, frame):
     elif(code == '0x7'):
         commands.send_control_mode(1)
 
-    if states_airfyer["system_state"] == 1 and states_airfyer["function_state"] == 1: 
-        temperature_control()
-        i2c.show_states()
-    if states_airfyer["system_state"] == 1 and states_airfyer["function_state"] == 0: 
-        i2c.show_mode()
 
-def temperature_control(): 
-    if states_airfyer["control_mode"] == 0: 
-        commands.ask_reference_temperature()
-        commands.send_time_counter()
-    else: 
-        commands.send_reference_signal(30.0)
-        commands.send_time_counter()
-    if states_airfyer["intern_temperature"] == states_airfyer["reference_temperature"]: 
-        time_start = time.time()
-    if(time_start!=-1): 
-        now = time.time()
-        states_airfyer["time_counter"] = round(((now - time_start)/ 60), 2)
-    time.sleep(0.1)
-    modbus.receive_data()
+def program_stop(): 
+    pwm.stop()
+    commands.send_function_state(0)
+    commands.send_system_state(0)
+    commands.send_control_mode(0)
+    i2c.clean_lcd()
+    pwm.gpio_clean()
 
-    commands.ask_intern_temperature()
-    time.sleep(0.1)
-    modbus.receive_data()
-
-    control = pid_controle()
-    commands.send_control_signal()
-    print(control)
-    print(states_airfyer["control_signal"])
-    gpio.start()
-    gpio.change_duty_cycle(control)
+def encoder(): 
+    pass
 
 def main(): 
-    gpio.gpio_init()
+    pwm.pwm_init()
     modbus.config_uart()
     try:
-        if(sys.argv == 'DASH'):
+        if sys.argv == 1:
+            control_thread()
+            log.log_init()
             while True: 
-                signal.signal(signal.SIGALRM, alarm_handler)
-                signal.alarm(1)
+                signal.signal(signal.SIGALRM, alarm_dashboard)
+                signal.alarm(0.2)
                 signal.pause()
-        else: 
-            while True: 
-                signal.signal(signal.SIGALRM, alarm_handler)
-                signal.alarm(1)
-                signal.pause()
+        elif sys.argv == 2: 
+            encoder()
     except KeyboardInterrupt:
-        gpio.stop()
-        commands.send_function_state(0)
-        commands.send_system_state(0)
-        commands.send_control_mode(0)
-        i2c.clean_lcd()
-        gpio.gpio_clean()
+        program_stop()
  
 main()

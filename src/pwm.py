@@ -1,6 +1,7 @@
 # Módulo de configutação da GPIO
 from RPi import GPIO
 from time import sleep
+from states import states_airfyer
 
 # Variáveis globais para cada pino a ser utilizado na GPIO
 temperature = True
@@ -12,15 +13,12 @@ ventoinha = 24
 pwm_resistor = 0
 pwm_fan = 0
 
-def gpio_init():
+def pwm_init():
     global pwm_resistor, pwm_fan
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
-    GPIO.setup(clk, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.setup(dt, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.setup(sw, GPIO.IN,pull_up_down=GPIO.PUD_UP)
     GPIO.setup(resistor, GPIO.OUT)
     GPIO.setup(ventoinha, GPIO.OUT)
 
@@ -31,11 +29,20 @@ def change_duty_cycle(control:int):
     if control>0:
         pwm_resistor.ChangeDutyCycle(control)
         pwm_fan.ChangeDutyCycle(0)
+        states_airfyer["resistor_acionamento"] = control
+        states_airfyer["fan_acionamento"] = 0
 
     elif control<=-40:
         pwm_resistor.ChangeDutyCycle(0)
-        # print(min(control,-40)*-1)
         pwm_fan.ChangeDutyCycle(40)
+        states_airfyer["resistor_acionamento"] = 0
+        states_airfyer["fan_acionamento"] = 40
+    
+    else: 
+        pwm_resistor.ChangeDutyCycle(0)
+        pwm_fan.ChangeDutyCycle(40)
+        states_airfyer["resistor_acionamento"] = 0
+        states_airfyer["fan_acionamento"] = 40
 
 def stop():
     pwm_resistor.stop()
