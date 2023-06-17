@@ -31,12 +31,12 @@ class Commands:
     def ask_intern_temperature(self): 
         modbus.ask_value(self.subcode_intern_temperature)
         time.sleep(0.1)
-        states_airfyer["intern_temperature"] = modbus.receive_data()
+        modbus.receive_data()
 
     def ask_reference_temperature(self): 
         modbus.ask_value(self.subcode_reference_temperature)
         time.sleep(0.1)
-        states_airfyer["reference_temperature"] = modbus.receive_data()
+        modbus.receive_data()
 
     def send_function_state(self, state: int): 
         states_airfyer["function_state"] = state
@@ -48,9 +48,12 @@ class Commands:
     def send_room_temperature(self): 
         states_airfyer["room_temperature"] = get_temperature()
         modbus.send_float(self.subcode_room_temperature, states_airfyer["room_temperature"])
+        time.sleep(0.1)
+        modbus.receive_data()
 
     # TO DO 
     def send_reference_signal(self, temperature): 
+        states_airfyer["reference_temperature"] = temperature
         modbus.send_float(self.subcode_reference_signal, temperature)
 
     def send_control_mode(self, mode): 
@@ -58,7 +61,9 @@ class Commands:
         modbus.send_integer(self.subcode_control_mode, states_airfyer["control_mode"])
 
     def send_time_counter(self): 
-        modbus.send_float(self.subcode_time_counter, states_airfyer["time_counter"])
+        modbus.send_control(self.subcode_time_counter, int(states_airfyer["time_counter"]))
+        time.sleep(0.1)
+        modbus.receive_data()
 
     def send_control_signal(self): 
-        modbus.send_float(self.subcode_control_signal,  states_airfyer["control_signal"])
+        modbus.send_control(self.subcode_control_signal,  states_airfyer["control_signal"])

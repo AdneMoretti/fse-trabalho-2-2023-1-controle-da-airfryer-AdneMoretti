@@ -22,6 +22,13 @@ class ModBusFunction():
         commands = self.destination + self.code_send + subcode + self.matricula + message
         crc = struct.pack('H', calcula_crc(commands))
         self.send_data(bytes(commands+crc))
+    
+    def send_control(self, subcode, message): 
+        message = struct.pack("<i", message)
+        subcode = bytes([int(subcode, 16)])
+        commands = self.destination + self.code_send + subcode + self.matricula + message
+        crc = struct.pack('H', calcula_crc(commands))
+        self.send_data(bytes(commands+crc))
 
     def send_float(self, subcode, message): 
         message = struct.pack('f', message)
@@ -77,10 +84,11 @@ class ModBusFunction():
         subcode = str(hex(message[2]))
         if subcode == '0xc1': 
             command = struct.unpack("f", message[3:7])[0]
+            print(command)
             states_airfyer["intern_temperature"] = command
         elif subcode == '0xc2': 
             command = struct.unpack("f", message[3:7])[0]
-            states_airfyer["intern_temperature"] = command
+            states_airfyer["reference_temperature"] = command
         elif subcode == '0xc3': 
             command = struct.unpack("i", message[3:7])[0]
         return command
@@ -90,22 +98,18 @@ class ModBusFunction():
         if (uart0_filestream != -1):
             # Read up to 255 characters from the port if they are there
             rx_buffer = os.read(uart0_filestream, 255)
-            print("rx_Bufefr", rx_buffer)
             rx_len = len(rx_buffer)
-            print(rx_len)
             if rx_len < 0:
                 print("Erro na leitura.\n")
                 return -1
 
             elif rx_len == 0:
-                print("Nenhum dado disponível.\n")
                 return -1
 
             else:
                 last_message = rx_buffer[-9:]
                 if(len(last_message)==9):
                     code = str(hex(last_message[1]))
-                    print("code ", code)
                     received_crc = last_message[-2:]
                     data_bytes = last_message[:-2]
 

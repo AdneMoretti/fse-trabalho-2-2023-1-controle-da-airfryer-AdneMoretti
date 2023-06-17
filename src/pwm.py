@@ -2,6 +2,7 @@
 from RPi import GPIO
 from time import sleep
 from states import states_airfyer
+import math
 
 # Variáveis globais para cada pino a ser utilizado na GPIO
 temperature = True
@@ -32,11 +33,12 @@ def change_duty_cycle(control:int):
         states_airfyer["resistor_acionamento"] = control
         states_airfyer["fan_acionamento"] = 0
 
-    elif control<=-40:
+    elif control < -40:
+        control = abs(control)
         pwm_resistor.ChangeDutyCycle(0)
-        pwm_fan.ChangeDutyCycle(40)
+        pwm_fan.ChangeDutyCycle(control)
         states_airfyer["resistor_acionamento"] = 0
-        states_airfyer["fan_acionamento"] = 40
+        states_airfyer["fan_acionamento"] = control
     
     else: 
         pwm_resistor.ChangeDutyCycle(0)
@@ -51,35 +53,6 @@ def stop():
 def start():
     pwm_resistor.start(0)
     pwm_fan.start(0)
-# TO DO
-# Botão do encoder e leitura da temperatura/tempo
-# def read_sw_encoder(): 
-#     if(GPIO.event_detected(sw, GPIO.RISING)):
-#         temperature = not temperature
-#         sleep(0.01)
-#         if(temperature): 
-#             read_clock()
-#         else: 
-#             read_clock()
-
-# def read_clock(): 
-#     counter = 0
-#     clkLastState = GPIO.input(clk)
-
-#     try:
-#         while True:
-#             clkState = GPIO.input(clk)
-#             dtState = GPIO.input(dt)
-#             if clkState != clkLastState:
-#                 sleep(0.1)
-#                 if dtState != clkState:
-#                     counter += 1
-#                 else:
-#                     counter -= 1
-#                 print(counter)
-#             clkLastState = clkState
-#     finally:
-#         GPIO.cleanup()
 
 def gpio_clean(): 
     GPIO.cleanup()
