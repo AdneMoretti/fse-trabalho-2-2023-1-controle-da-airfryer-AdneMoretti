@@ -37,8 +37,11 @@ def temperature_control():
         commands.ask_intern_temperature()
         print("TEMPERATURE", states_airfyer["reference_temperature"])
         commands.send_time_counter()
-        if states_airfyer["intern_temperature"] == states_airfyer["reference_temperature"]: 
+        time.sleep(0.1)
+        modbus.receive_data()
+        if states_airfyer["intern_temperature"] >= states_airfyer["reference_temperature"] - 0.2 and states_airfyer["intern_temperature"] <= states_airfyer["reference_temperature"] + 0.2: 
             running = True
+
         if running: 
             states_airfyer["time_counter"] -= 0.0166667
             if(states_airfyer["time_counter"] < 0): 
@@ -46,7 +49,7 @@ def temperature_control():
 
         if(states_airfyer["time_counter"] == 0): 
             running = False
-            states_airfyer["reference_temperature"] == states_airfyer["room_temperature"]
+            states_airfyer["reference_temperature"] = states_airfyer["room_temperature"]
             commands.send_reference_signal(states_airfyer["room_temperature"])
             time.sleep(0.1)
             modbus.receive_data()

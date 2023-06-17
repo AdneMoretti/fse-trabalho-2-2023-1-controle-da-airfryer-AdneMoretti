@@ -10,50 +10,52 @@ commands = Commands()
 def alarm_dashboard(signum, frame): 
     global time_start
     response_user = commands.read_commands()
-    code = str(hex(response_user))
-    # Comando para ligar a AirFryer
-    if(code == '0x1'): 
-        commands.send_system_state(1)
-    # Comando para desligar a AirFryer
-    elif(code == '0x2'):
-        commands.send_system_state(0)
-        pwm.stop()
-    # Inicia aquecimento
-    elif(code == '0x3'):
-        commands.send_function_state(1)
-        print(states_airfyer["function_state"])
-        time.sleep(0.1)
-        modbus.receive_data()
-    # Cancela processo    
-    elif(code == '0x4'):
-        commands.send_function_state(0)
-        time.sleep(0.1)
-        modbus.receive_data()
-    # Tempo + : adiciona 1 minuto ao timer
-    elif(code == '0x5'):
-        states_airfyer["time_counter"] += 1
-        commands.send_time_counter()
-        time.sleep(0.1)
-        modbus.receive_data()
-    # Tempo - : diminui 1 minuto ao timer
-    elif(code == '0x6'):
-        states_airfyer["time_counter"] -= 1
-        commands.send_time_counter()
-        time.sleep(0.1)
-        modbus.receive_data()
-    # Menu : aciona o modo de alimentos pré-programados
-    elif(code == '0x7'):
-        if states_airfyer["control_mode"]: 
-            state = 0
-        else: 
-            state = 1
-            states_airfyer["time_counter"] = 3
+    if response_user: 
+        code = str(hex(int(response_user)))
+        # Comando para ligar a AirFryer
+        if(code == '0x1'): 
+            commands.send_system_state(1)
+        # Comando para desligar a AirFryer
+        elif(code == '0x2'):
+            commands.send_system_state(0)
+            pwm.stop()
+        # Inicia aquecimento
+        elif(code == '0x3'):
+            commands.send_function_state(1)
+            print(states_airfyer["function_state"])
+            time.sleep(0.1)
+            modbus.receive_data()
+        # Cancela processo    
+        elif(code == '0x4'):
+            print("recebei comando para desligar")
+            commands.send_function_state(0)
+            time.sleep(0.1)
+            modbus.receive_data()
+        # Tempo + : adiciona 1 minuto ao timer
+        elif(code == '0x5'):
+            states_airfyer["time_counter"] += 1
             commands.send_time_counter()
             time.sleep(0.1)
             modbus.receive_data()
-        commands.send_control_mode(state)
-        time.sleep(0.1)
-        modbus.receive_data()
+        # Tempo - : diminui 1 minuto ao timer
+        elif(code == '0x6'):
+            states_airfyer["time_counter"] -= 1
+            commands.send_time_counter()
+            time.sleep(0.1)
+            modbus.receive_data()
+        # Menu : aciona o modo de alimentos pré-programados
+        elif(code == '0x7'):
+            if states_airfyer["control_mode"]: 
+                state = 0
+            else: 
+                state = 1
+                states_airfyer["time_counter"] = 3
+                commands.send_time_counter()
+                time.sleep(0.1)
+                modbus.receive_data()
+            commands.send_control_mode(state)
+            time.sleep(0.1)
+            modbus.receive_data()
 
 
 def program_stop(): 
@@ -61,6 +63,8 @@ def program_stop():
     commands.send_function_state(0)
     commands.send_system_state(0)
     commands.send_control_mode(0)
+    time.sleep(0.2)
+    modbus.receive_data()
     i2c.clean_lcd()
     pwm.gpio_clean()
     stop()
